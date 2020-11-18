@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <style>
+      body {
+        margin: 0;
+        overflow: hidden;
+      }
+      #canvas {
+        background: antiquewhite;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="canvas"></canvas>
+    <script>
+      const canvas = document.getElementById("canvas");
+      const [height, width] = [window.innerHeight, window.innerWidth];
+      canvas.height = height;
+      canvas.width = width;
+      // 画笔
+      const ctx = canvas.getContext("2d");
+      /*小球对象
+       *   x、y 位置
+       *   draw(ctx) 绘图方法
+       * */
+      class Ball {
+        constructor(r = 0, color = "#00acec") {
+          this.r = r;
+          this.color = color;
+          this.x = 0;
+          this.y = 0;
+
+          this.nx = 0;
+          this.ny = 0;
+          this.rate = 0.05;
+          this.state = 0;
+        }
+        draw(ctx) {
+          const { r, color, x, y } = this;
+          ctx.save();
+          ctx.beginPath();
+          ctx.arc(x, y, r, 0, Math.PI * 2);
+          ctx.fillStyle = color;
+          ctx.fill();
+          ctx.restore();
+        }
+        /*更新提示位置 - 基于鼠标点求提示的下一次移动位置*/
+        updatePos() {
+          const { x, y, nx, ny, rate, state } = this;
+          if (!this.state) {
+            return;
+          }
+          // 二分法
+          const [subX, subY] = [nx - x, ny - y];
+          this.x += subX * rate;
+          this.y += subY * rate;
+
+          const distance = Math.sqrt(subX * subX + subY + subY);
+          if (distance < 1) {
+            console.log(1);
+            this.state = 0;
+          }
+        }
+      }
+
+      //记录时间
+      let time = null;
+      // 重力
+      let gravity = 0;
+      // 弹性
+      let bounce = 0.8;
+      let vy = 0;
+      // 实例化小球
+      const ball = new Ball(50);
+      const bottom = canvas.height - ball.r;
+      ball.x = canvas.width / 2;
+      ball.y = canvas.height / 2;
+
+      //鼠标拖拽
+      let subPos = null;
+      let drag = false;
+
+      //点击事件
+      canvas.addEventListener("mousedown", mousedownFn);
+      canvas.addEventListener("mousemove", mousemoveFn);
+      canvas.addEventListener("mouseup", mouseupFn);
+
+      //切换标签页时重置time
+      window.addEventListener("visibilitychange", function () {
+        time = new Date();
+      });
+
+      function mousedownFn(event) {
+        //鼠标位置
+        const mousePos = getMousePos(event);
+        //鼠标位减图形位
+        subPos = {
+          x: mousePos.x - ball.x,
+          y: mousePos.y - ball.y,
+        };
+        //设置选择状态
+        drag = containPoint(ball, mousePos);
+        if (drag) {
+          ball.state = 1;
+          ball.nx = mousePos.x - subPos.x;
+          ball.ny = mousePos.y - subPos.y;
+        }
+      }
+
+      function mousemoveFn(event) {
+        const mousePos = getMousePos(event);
+        if (drag) {
+          ball.state = 1;
+          ball.nx = mousePos.x - subPos.x;
+          ball.ny = mousePos.y - subPos.y;
+        }
+      }
+
+      function mouseupFn() {
+        if (drag) {
+          drag = false;
+          ball.state = 0;
+          gravity = 0.01;
+          time = new Date();
+        }
+      }
+
+      //判断点是否在图形中
+      function containPoint(obj, mousePos) {
+        const len = Math.sqrt(subPos.x * subPos.x + subPos.y * subPos.y);
+        return len < obj.r;
+      }
+      //获取鼠标在canvas中的位置
+      function getMousePos(event) {
+        const { clientX, clientY } = event;
+        const { top, left } = canvas.getBoundingClientRect();
+        const x = clientX - left;
+        const y = clientY - top;
+        return { x, y };
+      }
+
+      function animate() {
+        let now = new Date();
+        const diff = now - time;
+        time = now;
+
+        vy += gravity;
+
+        ball.y += vy * diff;
+        //小球和地面碰撞时
+        if (ball.y >= bottom) {
+          ball.y = bottom;
+          vy *= -bounce;
+        }
+      }
+
+      !(function render() {
+        if (drag) {
+          ball.updatePos();
+        } else {
+          animate();
+        }
+        //清理画布
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ball.draw(ctx);
+        requestAnimationFrame(render);
+      })();
+    </script>
+  </body>
+</html>

@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>李鹏飞的作业，暗号：余切</title>
+    <style>
+        body{
+            margin: 0;
+            overflow: hidden;
+        }
+        #canvas{
+            background-color: aqua;
+        }
+    </style>
+</head>
+
+<body>
+    <canvas id="canvas"></canvas>
+    <script>
+        const canvas = document.querySelector("#canvas");
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        const ctx = canvas.getContext("2d");
+
+        class Ball{
+            constructor(r=0,color="red"){
+                this.r=r;
+                this.color=color;
+                this.x=0;
+                this.y=0; 
+                this.nx = 0;
+                this.ny = 0;
+                this.state = 0;
+                this.rate  = 0.05;
+            }
+
+            draw(){
+                const {x,y,r,color}=this;
+                ctx.save();
+                ctx.beginPath();
+                ctx.font = '4em 微软雅黑';
+                ctx.fillText("李鹏飞的作业,暗号：余切",650,100);
+                ctx.arc(x,y,r,0,Math.PI*2);
+                ctx.fillStyle=color;
+                ctx.fill();
+                ctx.restore();
+            }
+
+            updatePos() {
+            if(!this.state){return}
+            const subX = this.nx-this.x;
+            const subY = this.ny-this.y;
+            this.x += subX*this.rate;
+            this.y += subY*this.rate;
+            const distance = Math.sqrt(subX*subX+subY*subY);
+            if(distance<1){
+                this.state = 0;
+            }
+        }
+        }
+
+        let time = null;
+        let gravity = 0;
+        let bounce = 0.7;
+        let vy = 0;
+        
+        const ball = new Ball(80);
+        ball.x = canvas.width/2;
+        const bottom = canvas.height-ball.r;
+        ball.y = bottom;
+        
+        let subPos = null;
+        let drag = false;
+
+        canvas.addEventListener("mousedown",mousedownFn);
+        canvas.addEventListener("mousemove",mousemoveFn);
+        canvas.addEventListener("mouseup",mouseupFn);
+
+        function mousedownFn(event){
+            const mousePos = getMousePos(event);
+            subPos = {
+                x:mousePos.x-ball.x,
+                y:mousePos.y-ball.y
+            };
+            drag = containPoint(ball,mousePos);
+            if(drag){
+                ball.state = 1;
+                ball.nx = mousePos.x - subPos.x;
+                ball.ny = mousePos.y - subPos.y;
+            }
+        }
+
+        function mousemoveFn(event){
+            const mousePos = getMousePos(event);
+            if(drag){
+                ball.state = 1;
+                ball.nx = mousePos.x-subPos.x;
+                ball.ny = mousePos.y-subPos.y;
+            }
+        }
+
+        function mouseupFn(){
+          if(drag){
+              drag = false;
+              ball.state = 0;
+              gravity = 0.005;
+              time = new Date();
+          }  
+
+        }
+
+        function containPoint(obj){
+            const len = Math.sqrt(subPos.x*subPos.x+subPos.y*subPos.y);
+            return len<obj.r;
+        }
+
+        function getMousePos(event){
+            const {clientX,clientY} = event;
+            const {top,left} = canvas.getBoundingClientRect();
+            const x = clientX - left;
+            const y = clientY - top;
+            return{x,y};
+        }
+
+        function animate(){
+            let now = new Date();
+            let diff = now-time;
+            vy+=gravity;
+
+            ball.y+=vy*diff;
+            if(ball.y>=bottom){
+                ball.y=bottom;
+                vy*=-bounce;
+
+            }
+        }
+
+       
+        !function render(){
+            !drag&&animate();
+            if(drag){
+                ball.updatePos();
+            }else{
+                animate();
+            }
+            ctx.clearRect(0,0,canvas.width,canvas.height);
+            ball.draw(ctx);
+            requestAnimationFrame(render);
+
+        }()
+
+
+    </script>
+
+
+
+
+</body>
+</html>
